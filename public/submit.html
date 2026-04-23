@@ -515,7 +515,8 @@
                                     type="text"
                                     placeholder="Search FOSS apps by name or package (min 2 chars)"
                                     class="form-input"
-                                    oninput="filterTargetAlternatives(this.value)"
+                                    oninput="window.filterTargetAlternatives && window.filterTargetAlternatives(this.value)"
+                                    onfocus="window.filterTargetAlternatives && window.filterTargetAlternatives(this.value)"
                                     autocomplete="off"
                                 />
                                 <div
@@ -647,7 +648,29 @@
                 console.error(e?.error || e);
                 const t = document.getElementById("toast");
                 if (t) {
-                    t.textContent = "App failed to load. Please refresh.";
+                    const msg =
+                        e?.message ||
+                        e?.error?.message ||
+                        (typeof e === "string" ? e : "Unknown error");
+                    const where = e?.filename
+                        ? ` (${e.filename.split("/").slice(-1)[0]}:${e.lineno || "?"}:${e.colno || "?"})`
+                        : "";
+                    t.textContent = `App error: ${msg}${where}`;
+                    t.style.background = "#dc2626";
+                    t.style.display = "block";
+                    t.style.opacity = "1";
+                }
+            });
+
+            window.addEventListener("unhandledrejection", (e) => {
+                // eslint-disable-next-line no-console
+                console.error(e?.reason || e);
+                const t = document.getElementById("toast");
+                if (t) {
+                    const msg =
+                        e?.reason?.message ||
+                        (typeof e?.reason === "string" ? e.reason : "Unhandled rejection");
+                    t.textContent = `App error: ${msg}`;
                     t.style.background = "#dc2626";
                     t.style.display = "block";
                     t.style.opacity = "1";
@@ -662,6 +685,14 @@
             if (typeof loginWithGithub === "function") window.loginWithGithub = loginWithGithub;
             if (typeof submit === "function") window.submit = submit;
             if (typeof switchTab === "function") window.switchTab = switchTab;
+
+            // Proprietary target alternatives (new UI)
+            if (typeof filterTargetAlternatives === "function")
+                window.filterTargetAlternatives = filterTargetAlternatives;
+            if (typeof selectTargetAlternative === "function")
+                window.selectTargetAlternative = selectTargetAlternative;
+            if (typeof removeTargetAlternative === "function")
+                window.removeTargetAlternative = removeTargetAlternative;
 
             document.getElementById("auth-btn")?.addEventListener("click", login);
             document.getElementById("github-btn")?.addEventListener("click", loginWithGithub);
