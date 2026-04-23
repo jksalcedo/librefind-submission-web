@@ -129,6 +129,7 @@ let allTargets = [];
 let selectedTarget = null;
 let selectedSolutions = [];
 let selectedFossTargets = [];
+let selectedTargetAlternatives = [];
 let dupFlags = { foss: false, target: false };
 let selectedTargets = [];
 
@@ -338,6 +339,7 @@ function resetForms() {
         "target-name",
         "target-pkg",
         "target-desc",
+    "target-alt-search",
         "link-target-search",
         "link-sol-search",
     ].forEach((id) => ((document.getElementById(id) || {}).value = ""));
@@ -348,8 +350,93 @@ function resetForms() {
     clearTarget();
     selectedSolutions = [];
     selectedFossTargets = [];
+    selectedTargetAlternatives = [];
     renderFossTargets();
+    renderTargetAlternatives();
     renderSolutionChips();
+}
+
+// ── Proprietary Target — Alternatives (FOSS) ──────────────────────────────
+function filterTargetAlternatives(q) {
+    const dd = $("target-alt-dropdown");
+    if (!dd) return;
+
+    const query = (q || "").trim();
+    const results =
+        !query || query.length < 2
+            ? []
+            : (allTargets || []).filter(
+                  (t) =>
+                      (t.name || "")
+                          .toLowerCase()
+                          .includes(query.toLowerCase()) ||
+                      (t.package_name || "")
+                          .toLowerCase()
+                          .includes(query.toLowerCase()),
+              );
+
+    if (!results.length) {
+        hide("target-alt-dropdown");
+        return;
+    }
+
+    dd.innerHTML = results
+        .slice(0, 20)
+        .map(
+            (t) => `
+    <button onclick="selectTargetAlternative('${t.package_name}', '${(t.name || t.package_name).replace(/'/g, "&#39;")}')"
+        class="w-full text-left px-4 py-3 hover:bg-zinc-700 border-b border-zinc-700/50 last:border-0">
+        <div class="font-medium text-white">${t.name || t.package_name}</div>
+        <div class="text-xs text-zinc-400">${t.package_name}</div>
+    </button>
+`,
+        )
+        .join("");
+    show("target-alt-dropdown");
+}
+
+function selectTargetAlternative(pkg, name) {
+    if (!pkg) return;
+    if (selectedTargetAlternatives.find((t) => t.pkg === pkg)) {
+        if ($("target-alt-search")) $("target-alt-search").value = "";
+        hide("target-alt-dropdown");
+        return;
+    }
+    selectedTargetAlternatives.push({ pkg, name: name || pkg });
+    if ($("target-alt-search")) $("target-alt-search").value = "";
+    hide("target-alt-dropdown");
+    renderTargetAlternatives();
+}
+
+function removeTargetAlternative(pkg) {
+    selectedTargetAlternatives = selectedTargetAlternatives.filter(
+        (t) => t.pkg !== pkg,
+    );
+    renderTargetAlternatives();
+}
+
+function renderTargetAlternatives() {
+    const container = $("target-selected-alts");
+    if (!container) return;
+
+    if (selectedTargetAlternatives.length === 0) {
+        container.innerHTML =
+            '<span class="text-sm text-zinc-500 italic">No alternatives selected.</span>';
+        return;
+    }
+
+    container.innerHTML = selectedTargetAlternatives
+        .map(
+            (t) => `
+                    <span class="inline-flex items-center bg-zinc-800 border border-zinc-700 text-zinc-200 px-2 py-1 rounded text-sm gap-2">
+                        <span>${t.name}</span>
+                        <button onclick="removeTargetAlternative('${t.pkg}')" class="text-zinc-400 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </span>
+                `,
+        )
+        .join("");
 }
 
 // ── Pre-fill GitHub ────────────────────────────────────────────────────────
@@ -719,6 +806,7 @@ async function submit() {
                 payload.alternatives = selectedFossTargets.map((t) => t.pkg);
             } else {
                 payload.category = $("target-cat").value || null;
+                payload.alternatives = selectedTargetAlternatives.map((t) => t.pkg);
             }
             const { data, error } = await db.from("user_submissions").insert(payload).select();
             if (error) throw error;

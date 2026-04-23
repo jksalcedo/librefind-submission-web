@@ -497,6 +497,42 @@
                             <option>Writing</option>
                             <option>Other</option>
                         </select>
+
+                        <!-- FOSS Alternatives (Optional) -->
+                        <div class="pt-4 border-t border-zinc-800/50 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <label class="text-sm font-semibold text-zinc-200">
+                                    Suggested FOSS alternatives (Optional)
+                                </label>
+                                <span class="text-xs text-zinc-500"
+                                    >Pick one or more</span
+                                >
+                            </div>
+
+                            <div class="relative">
+                                <input
+                                    id="target-alt-search"
+                                    type="text"
+                                    placeholder="Search FOSS apps by name or package (min 2 chars)"
+                                    class="form-input"
+                                    oninput="filterTargetAlternatives(this.value)"
+                                    autocomplete="off"
+                                />
+                                <div
+                                    id="target-alt-dropdown"
+                                    class="hidden absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl max-h-56 overflow-y-auto"
+                                ></div>
+                            </div>
+
+                            <div
+                                id="target-selected-alts"
+                                class="flex flex-wrap gap-2"
+                            >
+                                <span class="text-sm text-zinc-500 italic"
+                                    >No alternatives selected.</span
+                                >
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Linking Form -->
