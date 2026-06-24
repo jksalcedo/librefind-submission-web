@@ -28,7 +28,6 @@
     function createSupabaseStorage() {
         const testKey = "sb_storage_test";
         try {
-            // For web reliability, prefer localStorage by default.
             // Allow opting out by setting remember_me = "0".
             let desiredStorage = window.localStorage;
             try {
@@ -108,7 +107,7 @@
         initSupabaseClient();
     }
 
-    // Initialize client on load (don't hard-crash if the CDN is blocked/delayed)
+    // Initialize client on load 
     (async () => {
         try {
             await waitForSupabaseSdk();
@@ -134,15 +133,13 @@
     let dupFlags = { foss: false, target: false };
     let selectedTargets = [];
 
-    // ── DOM Helpers ────────────────────────────────────────────────────────────
+    // DOM Helpers ────────────────────────────────────────────────────────────
     const $ = (id) => document.getElementById(id);
     const val = (id) => ($(id) ? $(id).value.trim() : "");
     const show = (id) => $(id) && $(id).classList.remove("hidden");
     const hide = (id) => $(id) && $(id).classList.add("hidden");
 
-    // (showToast is defined above for early-boot errors)
-
-    // ── Init ───────────────────────────────────────────────────────────────────
+    // Init ───────────────────────────────────────────────────────────────────
     async function init() {
         await ensureDbReady();
 
@@ -200,7 +197,6 @@
         show("screen-submit");
 
         await db.from("admin_users").select("is_active").eq("id", user.id).single();
-        // Admin panel link removed from this page.
 
         const { data: targets } = await db
             .from("targets")
@@ -218,7 +214,7 @@
         switchTab("foss");
     }
 
-    // ── Auth ───────────────────────────────────────────────────────────────────
+    // Auth ───────────────────────────────────────────────────────────────────
     function toggleRegister() {
         isRegistering = !isRegistering;
         $("auth-btn").textContent = isRegistering ? "Register" : "Sign In";
@@ -317,7 +313,7 @@
         }
     }
 
-    // ── Tabs ───────────────────────────────────────────────────────────────────
+    // Tabs ───────────────────────────────────────────────────────────────────
     function switchTab(tab) {
         currentTab = tab;
         // Do NOT reset form fields here so user input is preserved when switching tabs
@@ -364,14 +360,14 @@
         renderSolutionChips();
     }
 
-    // ── Proprietary Target — Alternatives (FOSS) ──────────────────────────────
+    // Proprietary Target — Alternatives (FOSS) ──────────────────────────────
     async function filterTargetAlternatives(q) {
         const dd = $("target-alt-dropdown");
         if (!dd) return;
 
         const query = (q || "").trim().toLowerCase();
 
-        // Require at least 1 char (or set to 0 if you want open-on-focus)
+        // Require at least 1 char
         if (query.length < 1) {
             hide("target-alt-dropdown");
             return;
@@ -487,7 +483,7 @@
             .join("");
     }
 
-    // ── Pre-fill GitHub ────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────
     async function prefillFromGithub(githubUrl) {
         if (!githubUrl || !githubUrl.includes("github.com")) return;
 
@@ -530,7 +526,7 @@
         }
     }
 
-    // ── Duplicate Check ────────────────────────────────────────────────────────
+    // Duplicate Check ────────────────────────────────────────────────────────
     async function checkDuplicate(table, pkg, warnId) {
         const key = table === "solutions" ? "foss" : "target";
         const inputId = key === "foss" ? "foss-pkg" : "target-pkg";
@@ -584,7 +580,7 @@
         hide(warnId);
     }
 
-    // ── FOSS — Target Search (Replaces) ────────────────────────────────────────
+    // Target Search (Replaces) ────────────────────────────────────────
     function filterFossTargets(q) {
         const dd = $("foss-target-dropdown");
         const results =
@@ -655,7 +651,7 @@
             .join("");
     }
 
-    // ── Linking — Target Search ────────────────────────────────────────────────
+    // Linking — Target Search ────────────────────────────────────────────────
     function filterTargets(q) {
         const dd = $("target-dropdown");
         const results =
@@ -708,7 +704,7 @@
         hide("selected-target-chip");
     }
 
-    // ── Linking — Solutions Search ─────────────────────────────────────────────
+    // Solutions Search ─────────────────────────────────────────────
     let solTimer;
     async function searchSolutions(q) {
         clearTimeout(solTimer);
@@ -774,7 +770,7 @@
                     .join("");
     }
 
-    // ── Validation ─────────────────────────────────────────────────────────────
+    // Validation ─────────────────────────────────────────────────────────────
     function isValid() {
         if (currentTab === "foss")
             return (
@@ -801,7 +797,7 @@
         return false;
     }
 
-    // ── Submit ─────────────────────────────────────────────────────────────────
+    // Submit ─────────────────────────────────────────────────────────────────
     async function submit() {
         if (!isValid())
             return showToast("Please fill in all required fields.", "warn");
@@ -844,7 +840,7 @@
                     app_name: isFoss ? val("foss-name") : val("target-name"),
                     app_package: isFoss ? val("foss-pkg") : val("target-pkg"),
                     description: isFoss ? val("foss-desc") : val("target-desc"),
-                    submission_type: isFoss ? "Solution" : "Target",
+                    submission_type: isFoss ? "NEW_ALTERNATIVE" : "NEW_PROPRIETARY",
                     status: "PENDING",
                 };
                 if (isFoss) {
