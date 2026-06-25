@@ -139,6 +139,15 @@
     const show = (id) => $(id) && $(id).classList.remove("hidden");
     const hide = (id) => $(id) && $(id).classList.add("hidden");
 
+    function isValidRepoUrl(url) {
+        try {
+            const parsed = new URL(url);
+            return parsed.protocol === "http:" || parsed.protocol === "https:";
+        } catch {
+            return false;
+        }
+    }
+
     // Init ───────────────────────────────────────────────────────────────────
     async function init() {
         await ensureDbReady();
@@ -330,6 +339,7 @@
 
         $("submit-label").textContent =
             tab === "linking" ? "Submit Link Request" : "Submit App";
+        updateSubmitButton();
     }
 
     function resetForms() {
@@ -358,6 +368,7 @@
         renderFossTargets();
         renderTargetAlternatives();
         renderSolutionChips();
+        updateSubmitButton();
     }
 
     // Proprietary Target — Alternatives (FOSS) ──────────────────────────────
@@ -514,8 +525,14 @@
                 (!licenseInput.value || licenseInput.value.trim() === "")
             ) {
                 licenseInput.value = data.license.spdx_id || data.license.name;
+            } else if (!data.license) {
+                showToast(
+                    "No license found on this repository — enter one manually.",
+                    "warn",
+                );
             }
 
+            updateSubmitButton();
             showToast("Submission details pre-filled successfully!", "success");
         } catch (error) {
             console.error("Failed to fetch GitHub data:", error);
@@ -534,6 +551,7 @@
         if (!pkg || pkg.length < 5) {
             dupFlags[key] = false;
             hide(warnId);
+            updateSubmitButton();
             return;
         }
 
@@ -555,6 +573,7 @@
             const warnEl = $(warnId);
             warnEl.innerHTML = `<i class="fas fa-exclamation-circle mr-1"></i>${warningMsg}`;
             show(warnId);
+            updateSubmitButton();
             return;
         }
 
@@ -573,11 +592,13 @@
             const warnEl = $(warnId);
             warnEl.innerHTML = `<i class="fas fa-exclamation-circle mr-1"></i>This app is already pending review.`;
             show(warnId);
+            updateSubmitButton();
             return;
         }
 
         dupFlags[key] = false;
         hide(warnId);
+        updateSubmitButton();
     }
 
     // Target Search (Replaces) ────────────────────────────────────────
@@ -695,6 +716,7 @@
         }
         show("selected-target-chip");
         hide("target-dropdown");
+        updateSubmitButton();
     }
 
     function clearTarget() {
@@ -702,6 +724,7 @@
         selectedTargets = [];
         if ($("link-target-search")) $("link-target-search").value = "";
         hide("selected-target-chip");
+        updateSubmitButton();
     }
 
     // Solutions Search ─────────────────────────────────────────────
@@ -745,11 +768,13 @@
         if ($("link-sol-search")) $("link-sol-search").value = "";
         hide("sol-dropdown");
         renderSolutionChips();
+        updateSubmitButton();
     }
 
     function removeSolution(pkg) {
         selectedSolutions = selectedSolutions.filter((p) => p !== pkg);
         renderSolutionChips();
+        updateSubmitButton();
     }
 
     function renderSolutionChips() {
@@ -771,36 +796,52 @@
     }
 
     // Validation ─────────────────────────────────────────────────────────────
-    function isValid() {
-        if (currentTab === "foss")
-            return (
-                !dupFlags.foss &&
-                val("foss-name") &&
-                val("foss-pkg") &&
-                val("foss-desc") &&
-                val("foss-repo") &&
-                val("foss-license")
-            );
-        if (currentTab === "target")
-            return !dupFlags.target && val("target-name") && val("target-pkg");
+    function getValidationError() {
+        if (currentTab === "foss") {
+            if (dupFlags.foss) return "This package already exists.";
+            if (!val("foss-name")) return "App name is required.";
+            if (!val("foss-pkg")) return "Package name is required.";
+            if (!val("foss-desc")) return "Description is required.";
+            if (!val("foss-repo")) return "Repository URL is required.";
+            if (!isValidRepoUrl(val("foss-repo")))
+                return "Enter a valid repository URL (https://...).";
+            if (!val("foss-license")) return "License is required.";
+            return null;
+        }
+        if (currentTab === "target") {
+            if (dupFlags.target) return "This package already exists.";
+            if (!val("target-name")) return "App name is required.";
+            if (!val("target-pkg")) return "Package name is required.";
+            return null;
+        }
         if (currentTab === "linking") {
-            // support backwards compatibility: if selectedTargets exists use its length,
-            // otherwise fall back to legacy single selectedTarget variable
             const targetsCount =
                 typeof selectedTargets !== "undefined" && Array.isArray(selectedTargets)
                     ? selectedTargets.length
                     : selectedTarget
                     ? 1
                     : 0;
-            return targetsCount > 0 && selectedSolutions.length > 0;
+            if (!targetsCount) return "Select at least one proprietary target.";
+            if (!selectedSolutions.length) return "Select at least one FOSS solution.";
+            return null;
         }
-        return false;
+        return "Invalid submission type.";
+    }
+
+    function isValid() {
+        return getValidationError() === null;
+    }
+
+    function updateSubmitButton() {
+        const btn = $("submit-btn");
+        if (!btn) return;
+        btn.disabled = !isValid();
     }
 
     // Submit ─────────────────────────────────────────────────────────────────
     async function submit() {
-        if (!isValid())
-            return showToast("Please fill in all required fields.", "warn");
+        const validationError = getValidationError();
+        if (validationError) return showToast(validationError, "warn");
 
         show("submit-overlay");
         $("submit-btn").disabled = true;
@@ -862,7 +903,7 @@
             showToast("Failed: " + (e.message || String(e)), "error");
         } finally {
             hide("submit-overlay");
-            $("submit-btn").disabled = false;
+            updateSubmitButton();
         }
     }
 
@@ -914,6 +955,19 @@
             !e.target.closest("#foss-target-dropdown")
         )
             hide("foss-target-dropdown");
+    });
+
+    [
+        "foss-name",
+        "foss-pkg",
+        "foss-desc",
+        "foss-repo",
+        "foss-license",
+        "target-name",
+        "target-pkg",
+    ].forEach((id) => {
+        const el = $(id);
+        if (el) el.addEventListener("input", updateSubmitButton);
     });
 
     init();

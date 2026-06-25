@@ -14,6 +14,7 @@ interface Submission {
     appName: string;
     appPackage: string;
     description: string;
+    repoUrl: string;
     license: string;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     createdAt: Date;

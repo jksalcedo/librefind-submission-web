@@ -330,7 +330,8 @@
                             <div>
                                 <input
                                     id="foss-repo"
-                                    type="text"
+                                    type="url"
+                                    required
                                     placeholder="Repository URL *"
                                     class="form-input"
                                     onblur="prefillFromGithub(this.value)"
@@ -351,6 +352,7 @@
                         <input
                             id="foss-license"
                             type="text"
+                            required
                             placeholder="License (e.g. GPL-3.0, MIT) *"
                             class="form-input"
                         />
@@ -630,7 +632,8 @@
                         <button
                             id="submit-btn"
                             onclick="submit()"
-                            class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center gap-2"
+                            disabled
+                            class="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold flex items-center gap-2"
                         >
                             <i class="fas fa-paper-plane"></i>
                             <span id="submit-label">Submit App</span>
